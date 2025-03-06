@@ -9,6 +9,10 @@ from docx import Document
 import shutil
 from supabase import create_client, Client
 from getRes import getRes  # ✅ Import getRes function
+from apomind import generate_thinking_style
+
+from apomind import gen , ft_model
+max_style="None"
 
 # Load API Keys & Supabase Credentials
 load_dotenv()
@@ -39,21 +43,63 @@ class ChatRequest(BaseModel):
     message: str
     user_id: int
 
-def get_thinking_style(user_id):
-    """Retrieve the dominant thinking style from the user_ts table."""
-    response = supabase.table("user_ts").select("*").eq("id", user_id).execute()
-    if response.data:
-        user_data = response.data[0]
-        max_style = max(
-            ("concrete", user_data["concrete"]),
-            ("logical", user_data["logical"]),
-            ("theoretical", user_data["theoretical"]),
-            ("practical", user_data["practical"]),
-            ("intuitive", user_data["intuitive"]),
-            key=lambda x: x[1]
-        )[0]
-        return max_style
-    return None
+def update_thinking_style(user_id, user_message, category):
+    """Check Supabase for existing thinking style, if missing, run model and store result."""
+    
+    user_response = supabase.table("user_subject_sel").select("username").eq("id", user_id).execute()
+    if not user_response.data:
+        raise ValueError(f"User {user_id} not found in user_subject_sel")
+
+    username = user_response.data[0]["username"]  # Extract username
+
+    # ✅ Only call LLM when category is "Exploration"
+    if category == "Exploration":
+        peft_model_output = generate_thinking_style(user_message)  # Call the LLM model
+    else:
+        peft_model_output = {"concrete": 0, "logical": 0, "theoretical": 0, "practical": 0, "intuitive": 0}
+
+    # ✅ Extract dominant thinking style
+    thinking_styles = ["concrete", "logical", "theoretical", "practical", "intuitive"]
+    max_style = max(thinking_styles, key=lambda style: peft_model_output.get(style, 0))  
+
+    print("Checking existing entry in Supabase...")
+
+    # ✅ Check if user_id already exists
+    existing_entry = supabase.table("user_ts").select("*").eq("id", user_id).execute()
+
+    if existing_entry.data:
+        print("User already exists, applying weighted update...")
+        existing_data = existing_entry.data[0]  # Get the existing record
+
+        # ✅ Apply weighted update: old_value + 0.15 * new_value
+        updated_values = {
+            "username": username,
+            "concrete": existing_data["concrete"] + (0.15 * peft_model_output["concrete"]),
+            "logical": existing_data["logical"] + (0.15 * peft_model_output["logical"]),
+            "theoretical": existing_data["theoretical"] + (0.15 * peft_model_output["theoretical"]),
+            "practical": existing_data["practical"] + (0.15 * peft_model_output["practical"]),
+            "intuitive": existing_data["intuitive"] + (0.15 * peft_model_output["intuitive"]),
+            "timestamp": "now()"
+        }
+
+        # ✅ Update the existing record
+        supabase.table("user_ts").update(updated_values).eq("id", user_id).execute()
+
+    else:
+        print("Inserting new record...")
+        # ✅ Insert if the user does not exist
+        supabase.table("user_ts").insert([{
+            "id": user_id,
+            "username": username,
+            "concrete": peft_model_output["concrete"],
+            "logical": peft_model_output["logical"],
+            "theoretical": peft_model_output["theoretical"],
+            "practical": peft_model_output["practical"],
+            "intuitive": peft_model_output["intuitive"],
+            "timestamp": "now()"
+        }]).execute()
+    
+    return max_style  # ✅ Return stored thinking style
 
 import requests
 
@@ -75,8 +121,7 @@ def get_question_data(user_message):
          
         1. **Decision Making** – The user is contemplating multiple options and needs help choosing one.
         2. **Risk Taking** – The user is considering actions that involve potential danger, uncertainty, or high stakes.
-        3. **Exploration** – The user is explore something strongly.
-        4. **Method to Approach** – The user is asking for advice on how to solve a problem or approach a challenge systematically.
+        3. **Exploration** – How the user is exploring the subject/topic.
         5. **Doubt** – The user is uncertain or seeking clarification about something, expressing lack of clarity.
 
     
@@ -104,39 +149,31 @@ def get_question_data(user_message):
     category = response.json()["choices"][0]["message"]["content"].strip()
 
     # Ensure the response is one of the expected categories
-    valid_categories = ["Decision Making", "Risk Taking", "Exploration" , "Method to approach" ,"Doubt"]
+    valid_categories = ["Decision Making", "Risk Taking", "Exploration","Doubt"]
     return category if category in valid_categories else "Unknown"
 
 
 
 @app.post("/chat/")
 async def chat_endpoint(request: ChatRequest):
-    """Process user query, classify it, personalize response, and save chat history."""
-    if not API_KEY:
-        raise HTTPException(status_code=500, detail="Missing API Key")
+    """Process user query, classify it, and store response in Supabase."""
 
-    user_thinking_style = get_thinking_style(request.user_id)
-    category = get_question_data(request.message)  # This now returns a string
+    category = get_question_data(request.message)  # ✅ Classify input
+    print("category" , category)
 
-    print("Category" , category)
-    # Fetch the objective from Supabase based on the category
-    response = supabase.table("ques_dir").select("*").eq("category", category).execute()
-    
-    if response.data:
-        question_data = response.data[0]  # Fetch the first matching row
-        objective = question_data["objective"]
-    else:
-        objective = "Provide a helpful response."
+    # ✅ Call thinking style function only for "Exploration"
+    user_thinking_style = None
+    if category == "Exploration":
+        user_thinking_style = update_thinking_style(request.user_id, request.message, category)
 
-    # ✅ Updated prompt
+    # ✅ Construct the prompt
     prompt = f"""
     You are an AI tutor guiding a student.
     The user's question has been classified under '{category}'.
-    Your goal is to:
-    1. Address the user's question based on the objective: {objective}.
-    2. Respond in a way that matches their thinking style: {user_thinking_style}.
-    3. Encourage the user to engage in meaningful discussion by asking follow-up questions.
-    4. force the user to ask only studies related and dont answer non academic questions/non studies questions
+    Thinking Style: {user_thinking_style if user_thinking_style else 'Unknown'}.
+    
+    Respond thoughtfully and encourage deeper discussion.
+    User Input: {request.message}
     """
 
     headers = {
@@ -144,13 +181,9 @@ async def chat_endpoint(request: ChatRequest):
         "Content-Type": "application/json"
     }
 
-    # ✅ Append user query to chat history
-    chat_history.append({"role": "user", "content": request.message})
-    print(chat_history)
-
     payload = {
         "model": "mistralai/mistral-7b-instruct",
-        "messages": [{"role": "system", "content": prompt}] + chat_history,
+        "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": request.message}],
         "max_tokens": 500,
         "temperature": 0.3,
     }
@@ -162,10 +195,7 @@ async def chat_endpoint(request: ChatRequest):
 
     bot_response = response.json()["choices"][0]["message"]["content"]
 
-    # ✅ Append AI response to chat history
-    chat_history.append({"role": "assistant", "content": bot_response})
-
-    # Store user query & bot response in Supabase chat_history
+    # ✅ Store responses in Supabase
     supabase.table("chat_history").insert([
         {"uid": request.user_id, "role": "user", "message": request.message}
     ]).execute()
@@ -175,6 +205,7 @@ async def chat_endpoint(request: ChatRequest):
     ]).execute()
 
     return {"reply": bot_response}
+
 
 
 def extract_text_from_file(file_path):
