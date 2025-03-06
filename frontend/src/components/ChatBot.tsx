@@ -32,6 +32,8 @@ const ChatBot: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
+  const userId = 1; // ✅ Hardcoded User ID
+
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -63,13 +65,17 @@ const ChatBot: React.FC = () => {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("question", message || "Summarize this document");
+        formData.append("user_id", userId.toString()); // ✅ Passing User ID
 
         response = await axios.post("http://localhost:8000/upload/", formData, {
           headers: { "Content-Type": "multipart/form-data" }
         });
         setFile(null);
       } else {
-        response = await axios.post("http://localhost:8000/chat", { message });
+        response = await axios.post("http://localhost:8000/chat", { 
+          message, 
+          user_id: userId  // ✅ Passing User ID
+        });
       }
 
       const botMessage: Message = {
