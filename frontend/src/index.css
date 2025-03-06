@@ -1,0 +1,107 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 210 100% 50%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 224 100% 68%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 222 84% 48%;
+
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased overflow-x-hidden;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/40 backdrop-blur-md border border-white/50 shadow-lg;
+  }
+  
+  .glass-dark {
+    @apply bg-apomind-dark/30 backdrop-blur-md border border-white/10 shadow-lg;
+  }
+  
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-lg border border-white/50 shadow-lg rounded-2xl transition-all duration-300 hover:shadow-xl;
+  }
+  
+  .glass-button {
+    @apply bg-white/40 backdrop-blur-sm border border-white/50 shadow transition-all duration-300 
+           hover:bg-white/60 hover:shadow-md active:scale-[0.98];
+  }
+  
+  .primary-button {
+    @apply bg-gradient-to-r from-apomind-blue to-apomind-indigo text-white shadow-md 
+           rounded-xl px-6 py-3 font-medium transition-all duration-300 
+           hover:shadow-lg hover:translate-y-[-2px] active:scale-[0.98];
+  }
+  
+  .secondary-button {
+    @apply bg-white/80 backdrop-blur-sm border border-gray-100 text-gray-800 shadow-sm 
+           rounded-xl px-6 py-3 font-medium transition-all duration-300 
+           hover:bg-white hover:shadow-md active:scale-[0.98];
+  }
+  
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-apomind-blue via-apomind-indigo to-apomind-purple;
+  }
+  
+  .text-gradient-pink {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-apomind-indigo to-apomind-pink;
+  }
+  
+  .section-padding {
+    @apply py-16 px-4 sm:px-8 md:px-16 lg:px-24;
+  }
+  
+  .subtle-rotate {
+    animation: subtle-rotate 20s linear infinite;
+  }
+  
+  @keyframes subtle-rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
