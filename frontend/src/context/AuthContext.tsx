@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
@@ -8,6 +7,7 @@ interface User {
   email: string;
   name: string;
   completedSurvey: boolean;
+  // Removed token property
 }
 
 interface AuthContextType {
@@ -39,53 +39,58 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // API base URL - adjust this to match your FastAPI backend
+  const API_URL =  'http://localhost:8000';
+
   useEffect(() => {
-    // Check if user is logged in via localStorage
-    const storedUser = localStorage.getItem('apomind_user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-      } catch (error) {
-        localStorage.removeItem('apomind_user');
+    const checkAuth = async () => {
+      const storedUser = localStorage.getItem('apomind_user');
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+        } catch (error) {
+          localStorage.removeItem('apomind_user');
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+    checkAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
-      // Simulate authentication delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Mock login - In a real app, this would call an authentication API
-      const mockUser = {
-        id: '1', // In a real app, this would come from the backend
-        email,
-        name: email.split('@')[0], // Just using the first part of email as name for mock
-        completedSurvey: false
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) throw new Error('Login failed');
+
+      const data = await response.json();
+      const userData = {
+        id: data.id,
+        email: data.email,
+        name: data.name,
+        completedSurvey: data.completedSurvey,
       };
-      
-      setUser(mockUser);
-      localStorage.setItem('apomind_user', JSON.stringify(mockUser));
-      
+
+      setUser(userData);
+      localStorage.setItem('apomind_user', JSON.stringify(userData));
+
       toast({
         title: "Login successful",
         description: "Welcome back to Apomind!",
       });
-      
-      // Redirect based on survey completion
-      if (!mockUser.completedSurvey) {
-        navigate('/survey');
-      } else {
-        navigate('/home');
-      }
+
+      navigate('/home');
     } catch (error) {
       toast({
         title: "Login failed",
         description: "Invalid credentials. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
       console.error('Login error:', error);
     } finally {
@@ -96,32 +101,36 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (name: string, email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
-      // Simulate registration delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock registration - In a real app, this would call an API
-      const newUser = {
-        id: Math.random().toString(36).substring(2, 9), // Generate random ID
-        email,
-        name,
-        completedSurvey: false
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      if (!response.ok) throw new Error('Registration failed');
+
+      const data = await response.json();
+      const userData = {
+        id: data.id,
+        email: data.email,
+        name: data.name,
+        completedSurvey: data.completedSurvey,
       };
-      
-      setUser(newUser);
-      localStorage.setItem('apomind_user', JSON.stringify(newUser));
+
+      setUser(userData);
+      localStorage.setItem('apomind_user', JSON.stringify(userData));
       
       toast({
         title: "Registration successful",
         description: "Welcome to Apomind! Let's complete your profile.",
       });
       
-      // Redirect to survey after registration
       navigate('/survey');
     } catch (error) {
       toast({
         title: "Registration failed",
         description: "Could not create your account. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
       console.error('Registration error:', error);
     } finally {
@@ -129,7 +138,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = (): void => {
+  const logout = async (): Promise<void> => {
     setUser(null);
     localStorage.removeItem('apomind_user');
     toast({
@@ -153,12 +162,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     register,
     logout,
-    updateUser
+    updateUser,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

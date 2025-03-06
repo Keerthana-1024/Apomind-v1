@@ -12,7 +12,6 @@ import { useToast } from "@/components/ui/use-toast";
 const ProfileView: React.FC = () => {
   const { user, updateUser } = useAuth();
   const { toast } = useToast();
-  
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || "",
