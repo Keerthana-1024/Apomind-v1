@@ -79,13 +79,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setUser(userData);
       localStorage.setItem('apomind_user', JSON.stringify(userData));
-
+      
       toast({
         title: "Login successful",
         description: "Welcome back to Apomind!",
       });
 
-      navigate('/home');
+      navigate('/home' );
     } catch (error) {
       toast({
         title: "Login failed",

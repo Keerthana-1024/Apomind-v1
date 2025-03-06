@@ -307,6 +307,7 @@
 
 from fastapi import FastAPI, HTTPException, File, UploadFile, Form
 from pydantic import BaseModel
+import logging
 import os
 import requests
 from dotenv import load_dotenv
@@ -357,6 +358,54 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
+class CourseSelection(BaseModel):
+    user_id: int
+    selected_courses: list[str]
+
+
+@app.get("/courses")
+async def get_courses():
+    try:
+        response = supabase.table("course_ts").select("course_id, course_name").execute()
+        if not response.data:
+            raise HTTPException(status_code=404, detail="No courses found")
+        
+        return response.data  # Returns a list of courses
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@app.post("/save_selected_courses")
+async def save_selected_courses(course_selection: CourseSelection):
+    """Save selected course names for a user in `user_subject_sel`."""
+    try:
+        user_id = course_selection.user_id
+        selected_courses = course_selection.selected_courses
+
+        # Fetch username based on user_id
+        user_data = supabase.table("users").select("username").eq("id", user_id).execute()
+        if not user_data.data:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        username = user_data.data[0]["username"]
+
+        # 🔥 Convert list of selected courses into a comma-separated string
+        courses_str = ", ".join(selected_courses)
+
+        response = supabase.table("user_subject_sel").insert({
+            "id": user_id,
+            "username": username,
+            "selected_subjects": courses_str  # 🔥 Storing `course_name`
+        }).execute()
+
+        if response.data:
+            return {"message": "Courses saved successfully"}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to save courses")
+
+    except Exception as e:
+        logging.error(f"Error saving selected courses: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 @app.post("/auth/register")
 async def register(user: UserCreate):
     try:
@@ -477,7 +526,7 @@ async def chat_endpoint(request: ChatRequest):
         "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": request.message}],
         "max_tokens": 500,
         "temperature": 0.3,
-    }
+    }   
 
     response = requests.post(f"{BASE_URL}/chat/completions", json=payload, headers=headers)
 
