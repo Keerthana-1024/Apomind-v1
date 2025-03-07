@@ -5,8 +5,8 @@ import { useToast } from "@/components/ui/use-toast";
 interface User {
   id: string;
   email: string;
-  name: string;
-  completedSurvey: boolean;
+  username: string;
+  
   // Removed token property
 }
 
@@ -14,7 +14,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateUser: (data: Partial<User>) => void;
 }
@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userData = {
         id: data.id,
         email: data.email,
-        name: data.name,
+        username: data.username,
         completedSurvey: data.completedSurvey,
       };
 
@@ -98,13 +98,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (name: string, email: string, password: string): Promise<void> => {
+  const register = async (username: string, email: string, password: string): Promise<void> => {
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ username, email, password }),
       });
 
       if (!response.ok) throw new Error('Registration failed');
@@ -113,7 +113,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userData = {
         id: data.id,
         email: data.email,
-        name: data.name,
+        username: data.username,
         completedSurvey: data.completedSurvey,
       };
 

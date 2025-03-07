@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import ChatBot from "@/components/ChatBot";
 import ChatHistory from "@/components/ChatHistory";
 import ProfileView from "@/components/ProfileView";
+import Recommendation from "@/components/recommendation";
 
 const Home = () => {
   const [activeTab, setActiveTab] = useState("chat");
@@ -22,6 +23,7 @@ const Home = () => {
       <main className="container mx-auto px-4 py-6 h-[calc(100vh-72px)]">
         <div className="h-full glass-card rounded-xl overflow-hidden animate-fade-in">
           {activeTab === "chat" && <ChatBot />}
+          {activeTab === "recommendation" && <Recommendation/>}  {/* Replace with recommendation component */}
           {activeTab === "history" && <ChatHistory />}
           {activeTab === "profile" && <ProfileView />}
         </div>

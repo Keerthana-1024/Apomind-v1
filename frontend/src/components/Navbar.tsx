@@ -74,7 +74,20 @@ const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
               <History className="h-5 w-5" />
               <span>History</span>
             </Button>
-            
+              
+            <Button
+              variant="ghost"
+              className={`px-4 py-2 flex items-center space-x-2 ${
+                activeTab === "recommendation" 
+                  ? "bg-apomind-blue/10 text-apomind-blue" 
+                  : "text-gray-600 hover:text-apomind-blue hover:bg-gray-100/50"
+              }`}
+              onClick={() => handleTabClick("recommendation")}
+            >
+              <Brain className="h-5 w-5" />
+              <span>Recommendation</span>
+            </Button>
+
             <Button
               variant="ghost"
               className={`px-4 py-2 flex items-center space-x-2 ${
@@ -97,7 +110,7 @@ const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                   <Avatar className="h-9 w-9 border-2 border-white">
                     <AvatarImage src="" />
                     <AvatarFallback className="bg-apomind-indigo text-white">
-                      {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                      {user?.username ? user.username.charAt(0).toUpperCase() : "U"}
                     </AvatarFallback>
                   </Avatar>
                 </Button>

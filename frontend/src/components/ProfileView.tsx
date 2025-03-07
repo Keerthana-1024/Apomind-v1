@@ -14,7 +14,7 @@ const ProfileView: React.FC = () => {
   const { toast } = useToast();
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.name || "",
+    username: user?.username || "",
     email: user?.email || "",
   });
   
@@ -28,7 +28,7 @@ const ProfileView: React.FC = () => {
   
   const handleSave = () => {
     // Validate
-    if (!formData.name.trim()) {
+    if (!formData.username.trim()) {
       toast({
         title: "Error",
         description: "Name cannot be empty",
@@ -39,7 +39,7 @@ const ProfileView: React.FC = () => {
     
     // Update user
     updateUser({
-      name: formData.name,
+      username: formData.username,
     });
     
     toast({
@@ -53,7 +53,7 @@ const ProfileView: React.FC = () => {
   const handleCancel = () => {
     // Reset form data
     setFormData({
-      name: user?.name || "",
+      username: user?.username || "",
       email: user?.email || "",
     });
     setEditing(false);
@@ -71,10 +71,10 @@ const ProfileView: React.FC = () => {
           <Avatar className="h-24 w-24 border-4 border-white shadow-lg mb-4">
             <AvatarImage src="" />
             <AvatarFallback className="bg-gradient-to-r from-apomind-blue to-apomind-indigo text-white text-2xl">
-              {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+              {user?.username ? user.username.charAt(0).toUpperCase() : "U"}
             </AvatarFallback>
           </Avatar>
-          <h3 className="text-xl font-bold text-gray-800">{user?.name}</h3>
+          <h3 className="text-xl font-bold text-gray-800">{user?.username}</h3>
           <p className="text-gray-600">{user?.email}</p>
         </div>
         
@@ -100,7 +100,7 @@ const ProfileView: React.FC = () => {
                 <Input
                   id="name"
                   name="name"
-                  value={formData.name}
+                  value={formData.username}
                   onChange={handleInputChange}
                   className={`pl-10 bg-white/80 ${editing ? "" : "opacity-70"}`}
                   placeholder="Your full name"
@@ -149,29 +149,7 @@ const ProfileView: React.FC = () => {
           </div>
         </Card>
         
-        <Card className="glass-card p-6 mb-6">
-          <h3 className="text-lg font-medium mb-2">Learning Progress</h3>
-          <p className="text-gray-600 text-sm mb-4">Your course completion and study statistics</p>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/60 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-apomind-blue">4</div>
-              <div className="text-sm text-gray-600">Courses In Progress</div>
-            </div>
-            <div className="bg-white/60 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-apomind-purple">2</div>
-              <div className="text-sm text-gray-600">Courses Completed</div>
-            </div>
-            <div className="bg-white/60 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-apomind-indigo">24</div>
-              <div className="text-sm text-gray-600">Learning Hours</div>
-            </div>
-            <div className="bg-white/60 rounded-lg p-4 text-center">
-              <div className="text-3xl font-bold text-green-500">85%</div>
-              <div className="text-sm text-gray-600">Average Score</div>
-            </div>
-          </div>
-        </Card>
+        
         
         <Card className="glass-card p-6">
           <h3 className="text-lg font-medium mb-2">Account Settings</h3>

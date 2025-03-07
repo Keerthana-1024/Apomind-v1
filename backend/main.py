@@ -305,7 +305,7 @@
 #         os.remove(temp_file_path)
 
 
-from fastapi import FastAPI, HTTPException, File, UploadFile, Form
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form,Query
 from pydantic import BaseModel
 import logging
 import os
@@ -317,6 +317,7 @@ from docx import Document
 import shutil
 from supabase import create_client, Client
 from passlib.context import CryptContext
+from recomendation import fetch_data, career_recommendation
 
 # Load API Keys & Supabase Credentials
 load_dotenv()
@@ -363,6 +364,22 @@ class CourseSelection(BaseModel):
     selected_courses: list[str]
 
 
+
+@app.get("/career_recommendation")
+async def get_career_recommendations(username: str = Query(..., description="Username of the user")):
+    """
+    API endpoint to get top 5 career recommendations for a given username.
+    """
+    try:
+        recommendations = career_recommendation(username)
+        if not recommendations:
+            raise HTTPException(status_code=404, detail="No recommendations found for the user.")
+        return recommendations
+    except Exception as e:
+        logging.error(f"Error in career recommendation: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching career recommendations")
+    
+    
 @app.get("/courses")
 async def get_courses():
     try:
@@ -381,6 +398,7 @@ async def save_selected_courses(course_selection: CourseSelection):
     try:
         user_id = course_selection.user_id
         selected_courses = course_selection.selected_courses
+
 
         # Fetch username based on user_id
         user_data = supabase.table("users").select("username").eq("id", user_id).execute()
@@ -514,7 +532,7 @@ async def chat_endpoint(request: ChatRequest):
     
     Respond thoughtfully and encourage deeper discussion.
     User Input: {request.message}
-    """
+    """ 
 
     headers = {
         "Authorization": f"Bearer {API_KEY}",
