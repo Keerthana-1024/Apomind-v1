@@ -114,7 +114,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         id: data.id,
         email: data.email,
         username: data.username,
-        completedSurvey: data.completedSurvey,
       };
 
       setUser(userData);
