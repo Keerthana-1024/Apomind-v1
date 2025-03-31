@@ -59,9 +59,40 @@ const Register = () => {
     
     if (validate()) {
       try {
+        // Prepare the data as a JSON object
+        const userData = {
+          name: name,
+          email: email,
+          password: password,
+        };
+
+        // Send the data using fetch
+        const response = await fetch("http://localhost:8000/auth/register", { // Replace with your API endpoint
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(userData),
+        });
+
+        if (!response.ok) {
+          // Handle error responses
+          const errorData = await response.json();
+          console.error("Registration failed:", errorData);
+          // Optionally, display error messages to the user
+          return;
+        }
+
+        // If the request is successful, you might want to handle the response
+        const data = await response.json();
+        console.log("Registration successful:", data);
+
+        // Call your register function from AuthContext if needed
         await register(name, email, password);
+
       } catch (error) {
         console.error("Registration failed:", error);
+        // Handle network errors or other exceptions
       }
     }
   };
@@ -90,9 +121,9 @@ const Register = () => {
         </div>
         
         <Card className="glass-card p-8 animate-scale-in">
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" encType="application/x-www-form-urlencoded">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-gray-700">Full Name</Label>
+              <Label htmlFor="name" className="text-gray-700">Full Name ---- changed------</Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                 <Input

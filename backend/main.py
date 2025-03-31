@@ -11,7 +11,7 @@ import shutil
 from supabase import create_client, Client
 from passlib.context import CryptContext
 from recomendation import fetch_data, career_recommendation
-
+import bcrypt
 from apomind import generate_thinking_style
 max_style="None"
 
@@ -22,6 +22,9 @@ API_KEY = os.getenv("OPENROUTER_API_KEY")
 BASE_URL = os.getenv("OPENROUTER_API_URL", "https://openrouter.ai/api/v1")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+import os
+print("SUPABASE_URL:", os.getenv("SUPABASE_URL"))
+print("SUPABASE_KEY:", os.getenv("SUPABASE_KEY"))
 
 # Initialize FastAPI App
 app = FastAPI()
@@ -50,15 +53,49 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+def verify_password(plain_password, hashed_password):
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+
+# def get_password_hash(password):
+#     return pwd_context.hash(password)
 def get_password_hash(password):
-    return pwd_context.hash(password)
+    print(f"Hashing password: {password}") # Add this
+    hashed = pwd_context.hash(password)
+    print(f"Hashed password: {hashed}") # Add this
+    return hashed
 
 class CourseSelection(BaseModel):
     user_id: int
     selected_courses: list[str]
+
+@app.get("/test_supabase")
+async def test_supabase():
+    try:
+        response = supabase.table("course_ts").select("*").limit(1).execute()
+        return {"success": True, "data": response.data}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/user_selected_courses/{user_id}")
+async def get_user_selected_courses(user_id: int):
+    """Retrieve selected courses for a given user."""
+    try:
+        response = supabase.table("user_subject_sel").select("selected_subjects").eq("id", user_id).execute()
+        
+        print("Fetched courses:", response)  # Debugging line
+        
+        if not response.data or not response.data[0]["selected_subjects"]:  # Fix null check
+            return {"user_id": user_id, "selected_courses": []}  # ✅ Return empty list instead of error
+
+        selected_courses = response.data[0]["selected_subjects"].split(", ") if response.data[0]["selected_subjects"] else []
+        return {"user_id": user_id, "selected_courses": selected_courses}
+
+    except Exception as e:
+        logging.error(f"Error fetching selected courses: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 
@@ -81,24 +118,30 @@ async def get_career_recommendations(username: str = Query(..., description="Use
 async def get_courses():
     try:
         response = supabase.table("course_ts").select("course_id, course_name").execute()
+       
         if not response.data:
             raise HTTPException(status_code=404, detail="No courses found")
         
-        return response.data  # Returns a list of courses
+        return response.data  # ✅ Ensure response includes course_id
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
     
 
 @app.post("/save_selected_courses")
 async def save_selected_courses(course_selection: CourseSelection):
-    """Save selected course names for a user in user_subject_sel."""
+    """Save or update selected course names for a user in user_subject_sel."""
     try:
         user_id = course_selection.user_id
         selected_courses = course_selection.selected_courses
-
+        print(user_id)
+        print(selected_courses)
 
         # Fetch username based on user_id
         user_data = supabase.table("users").select("username").eq("id", user_id).execute()
+        print("User data:",user_data)
+
         if not user_data.data:
             raise HTTPException(status_code=404, detail="User not found")
 
@@ -107,11 +150,14 @@ async def save_selected_courses(course_selection: CourseSelection):
         # 🔥 Convert list of selected courses into a comma-separated string
         courses_str = ", ".join(selected_courses)
 
-        response = supabase.table("user_subject_sel").insert({
-            "id": user_id,
+        # 🔄 Use upsert instead of insert to avoid duplicate key errors
+        response = supabase.table("user_subject_sel").upsert({
+            "id": user_id,  # Primary key
             "username": username,
-            "selected_subjects": courses_str  # 🔥 Storing course_name
+            "selected_subjects": courses_str  # 🔥 Storing course names
         }).execute()
+
+        print("response:", response)
 
         if response.data:
             return {"message": "Courses saved successfully"}
@@ -121,24 +167,33 @@ async def save_selected_courses(course_selection: CourseSelection):
     except Exception as e:
         logging.error(f"Error saving selected courses: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/auth/register")
 async def register(user: UserCreate = Body(...)):
     try:
+        print("==== 1")
         # Check if user exists
         existing_user = supabase.table("users").select("email").eq("email", user.email).execute()
+        print("==== 2")
         if existing_user.data:
+            print( "==== inside if ^^ >>   ...")
             raise HTTPException(status_code=400, detail="Email already registered")
-
+        print("==== 3")
         # Hash password and create user
         hashed_password = get_password_hash(user.password)
+        print("==== 4")
         new_user = {
             "username": user.name,
             "email": user.email,
             "password": hashed_password,
         }
-        
+        print("==== 5")
         response = supabase.table("users").insert(new_user).execute()
+        print("==== 6")
         user_data = response.data[0]
+        print("==== 7")
+        print(user_data)
+        print(response.data)
         
         return {
             "id": user_data["id"],
@@ -151,11 +206,15 @@ async def register(user: UserCreate = Body(...)):
 @app.post("/auth/login")
 async def login(user: UserLogin):
     try:
-        # Get user from Supabase
+        print("==== 1")
+        # print(f"{user.email} - {user.password}")
         db_user = supabase.table("users").select("*").eq("email", user.email).single().execute()
-        if not db_user.data or not verify_password(user.password, db_user.data["password"]):
+        print("==== 2")
+
+        if not db_user.data or not verify_password(user.password, db_user.data["password"]): #Corrected line
             raise HTTPException(status_code=401, detail="Invalid credentials")
-        
+
+        print("==== 3")
         user_data = db_user.data
         return {
             "id": user_data["id"],
@@ -163,7 +222,7 @@ async def login(user: UserLogin):
             "username": user_data["username"],
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)+" hihi")
 
 # Chat history (stores user & assistant messages)
 chat_history = []
