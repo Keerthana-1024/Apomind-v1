@@ -11,7 +11,7 @@ import shutil
 from supabase import create_client, Client
 from passlib.context import CryptContext
 from recomendation import fetch_data, career_recommendation
-import bcrypt
+
 from apomind import generate_thinking_style
 max_style="None"
 
@@ -32,15 +32,19 @@ app = FastAPI()
 # Initialize Supabase Client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Enable CORS for Frontend Communication
+from fastapi.middleware.cors import CORSMiddleware
+
+origins = [
+    "http://localhost:8080",  # Vite/React frontend port
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -53,18 +57,11 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 def verify_password(plain_password, hashed_password):
-    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    return pwd_context.verify(plain_password, hashed_password)
 
-# def get_password_hash(password):
-#     return pwd_context.hash(password)
 def get_password_hash(password):
-    print(f"Hashing password: {password}") # Add this
-    hashed = pwd_context.hash(password)
-    print(f"Hashed password: {hashed}") # Add this
-    return hashed
+    return pwd_context.hash(password)
 
 class CourseSelection(BaseModel):
     user_id: int
@@ -171,29 +168,21 @@ async def save_selected_courses(course_selection: CourseSelection):
 @app.post("/auth/register")
 async def register(user: UserCreate = Body(...)):
     try:
-        print("==== 1")
         # Check if user exists
         existing_user = supabase.table("users").select("email").eq("email", user.email).execute()
-        print("==== 2")
         if existing_user.data:
-            print( "==== inside if ^^ >>   ...")
             raise HTTPException(status_code=400, detail="Email already registered")
-        print("==== 3")
+
         # Hash password and create user
         hashed_password = get_password_hash(user.password)
-        print("==== 4")
         new_user = {
             "username": user.name,
             "email": user.email,
             "password": hashed_password,
         }
-        print("==== 5")
+        
         response = supabase.table("users").insert(new_user).execute()
-        print("==== 6")
         user_data = response.data[0]
-        print("==== 7")
-        print(user_data)
-        print(response.data)
         
         return {
             "id": user_data["id"],
@@ -206,15 +195,11 @@ async def register(user: UserCreate = Body(...)):
 @app.post("/auth/login")
 async def login(user: UserLogin):
     try:
-        print("==== 1")
-        # print(f"{user.email} - {user.password}")
+        # Get user from Supabase
         db_user = supabase.table("users").select("*").eq("email", user.email).single().execute()
-        print("==== 2")
-
-        if not db_user.data or not verify_password(user.password, db_user.data["password"]): #Corrected line
+        if not db_user.data or not verify_password(user.password, db_user.data["password"]):
             raise HTTPException(status_code=401, detail="Invalid credentials")
-
-        print("==== 3")
+        
         user_data = db_user.data
         return {
             "id": user_data["id"],
@@ -222,7 +207,9 @@ async def login(user: UserLogin):
             "username": user_data["username"],
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)+" hihi")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Chat history (stores user & assistant messages)
 chat_history = []
@@ -304,12 +291,13 @@ def get_question_data(user_message):
         "role": "system",
         "content": """
         You are an AI classifier. Your task is to analyze the user's input and classify it into one of four categories:
-        1. *Decision Making* – The user is contemplating multiple options and needs help choosing one.
-        2. *Risk Taking* – The user is considering actions that involve potential danger, uncertainty, or high stakes.
-        3. *Exploration* – How the user is exploring the subject/topic.
-        4. *Doubt* – The user is uncertain or seeking clarification about something, expressing lack of clarity.
+        0. Optimisation-How user tries to solve or get a better solution or answer.
+        1. Doubt- User asks a subject specific doubt.
+        2. Decision Making – The user is contemplating multiple options and needs help choosing one.
+        3. Risk Taking – The user is considering actions that involve potential danger, uncertainty, or high stakes.
+        4. Optimisation-How user tries to solve or get a better solution or answer.
         
-        *Respond with only the category name.*
+        Respond with only the category name.
         """
     }
 
@@ -331,9 +319,78 @@ def get_question_data(user_message):
         raise ValueError(f"API Error: {response.status_code} - {response.text}")
 
     category = response.json()["choices"][0]["message"]["content"].strip()
-    valid_categories = ["Decision Making", "Risk Taking", "Exploration", "Doubt"]
+    valid_categories = ["Optimisation", "Risk Taking", "Exploration", "Doubt"]
     return category if category in valid_categories else "Unknown"
 
+def user_doubt(id,message,cat):
+    response = supabase.table("user_ts") .select("*") .eq("id", id).limit(1).execute()
+    print("thinking style:",response)
+    print("thinking style:",response)
+    prompt = f"""
+    You are an AI tutor guiding a student.
+    Explain the user doubt with respect to their prominent thinking style from'{response}' name the thinking style.
+    Take the prominent thinking style of the person and explain.
+    Concrete:Use real life examples
+    logical:Use mathematical and pattern based rep
+    theoretical:Use abstract words and terminologies
+    practical:Explain in detail with a use case
+    intuitive:use an analogy that is abstract and similar to current one
+    User Input: {message}
+    """
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": "mistralai/mistral-7b-instruct",
+        "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": message}],
+        "max_tokens": 500,
+        "temperature": 0.3,
+    }
+
+    response = requests.post(f"{BASE_URL}/chat/completions", json=payload, headers=headers)
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=500, detail="API Error")
+
+    bot_response = response.json()["choices"][0]["message"]["content"]
+    return bot_response
+
+def user_solve(id,message,cat):
+    response = supabase.table("user_ts") .select("*") .eq("id", id).limit(1).execute()
+    print("thinking style:",response)
+    print("thinking style:",response)
+    prompt = f"""
+    You are an AI tutor guiding a student.
+    Explain the user how to solve the problem with respect to their prominent thinking style from'{response}' name the thinking style.
+    Take the prominent thinking style of the person and explain.
+    Concrete:Use real life examples
+    logical:Use mathematical and pattern based rep
+    theoretical:Use abstract words and terminologies
+    practical:Explain in detail with a use case
+    intuitive:use an analogy that is abstract and similar to current one
+    User Input: {message}
+    """
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": "mistralai/mistral-7b-instruct",
+        "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": message}],
+        "max_tokens": 500,
+        "temperature": 0.3,
+    }
+
+    response = requests.post(f"{BASE_URL}/chat/completions", json=payload, headers=headers)
+
+    if response.status_code != 200:
+        raise HTTPException(status_code=500, detail="API Error")
+
+    bot_response = response.json()["choices"][0]["message"]["content"]
+    return bot_response
 
 
 @app.post("/chat/")
@@ -342,7 +399,15 @@ async def chat_endpoint(request: ChatRequest):
 
     category = get_question_data(request.message)  # ✅ Classify input
     print("category" , category)
-
+    
+    if category=="Doubt":
+        bot_response=user_doubt(request.user_id, request.message, category)
+        return {"reply": bot_response}
+    
+    if category=="Optimisation":
+        bot_response=user_solve(request.user_id, request.message, category)
+        return {"reply": bot_response}
+    
     # ✅ Call thinking style function only for "Exploration"
     user_thinking_style = None
     if category == "Exploration":
