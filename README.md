@@ -8,7 +8,7 @@ This project is an **AI-powered educational assistant** that adapts responses ba
 - **Personalized Course Recommendations** → Matches users with relevant subjects based on their preferences.
 - **AI-Powered Chatbot** → Uses **Mistral-7B** for intelligent responses and **stores conversation history.**
 - **Document-Based Q&A** → Extracts text from **PDFs, DOCX, and TXT** files to answer user queries.
-- **🛠 FastAPI + Supabase Backend** → Ensures scalability and efficient data storage.
+- **FastAPI + Supabase Backend** → Ensures scalability and efficient data storage.
 
 ## **Tech Stack**
 - **Backend:** FastAPI, Supabase, Python
@@ -81,6 +81,6 @@ the below one is without tailoring to thinking styles
    ```
 
 ---
-📢 *For any questions or contributions, feel free to reach out!* 🚀
+ *For any questions or contributions, feel free to reach out!* 
 
 
