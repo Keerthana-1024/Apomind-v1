@@ -4,10 +4,10 @@
 This project is an **AI-powered educational assistant** that adapts responses based on a user's **thinking style.** It integrates **NLP, FastAPI, and Supabase** to classify users' cognitive preferences and provide personalized tutoring experiences.
 
 ## **Features**
-- ** Thinking Style Classification** → Fine-tuned NLP model predicts if a user is concrete, logical, theoretical, practical, or intuitive.
-- ** Personalized Course Recommendations** → Matches users with relevant subjects based on their preferences.
-- ** AI-Powered Chatbot** → Uses **Mistral-7B** for intelligent responses and **stores conversation history.**
-- ** Document-Based Q&A** → Extracts text from **PDFs, DOCX, and TXT** files to answer user queries.
+- **Thinking Style Classification** → Fine-tuned NLP model predicts if a user is concrete, logical, theoretical, practical, or intuitive.
+- **Personalized Course Recommendations** → Matches users with relevant subjects based on their preferences.
+- **AI-Powered Chatbot** → Uses **Mistral-7B** for intelligent responses and **stores conversation history.**
+- **Document-Based Q&A** → Extracts text from **PDFs, DOCX, and TXT** files to answer user queries.
 - **🛠 FastAPI + Supabase Backend** → Ensures scalability and efficient data storage.
 
 ## **Tech Stack**
@@ -56,9 +56,9 @@ the below one is tailored to concrete thinking styles which relates with real ti
 the below one is without tailoring to thinking styles
 ![Survey UI](withoutts.png)
 ## **Future Improvements**
-- ** Replace OpenRouter API classification** with our own **fine-tuned model**
-- ** Improve Thinking Style Model Accuracy** using better labeled data
-- ** Deploy an Interactive Demo** to showcase real-time AI tutoring
+- **Replace OpenRouter API classification** with our own **fine-tuned model**
+- **Improve Thinking Style Model Accuracy** using better labeled data
+- **Deploy an Interactive Demo** to showcase real-time AI tutoring
 
 ## **Setup Instructions**
 1. Clone the repository:
