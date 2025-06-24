@@ -1,6 +1,6 @@
 # **Thinking Style-Based AI Tutor**
 
-## ** Overview**
+## **Overview**
 This project is an **AI-powered educational assistant** that adapts responses based on a user's **thinking style.** It integrates **NLP, FastAPI, and Supabase** to classify users' cognitive preferences and provide personalized tutoring experiences.
 
 ## ** Features**
