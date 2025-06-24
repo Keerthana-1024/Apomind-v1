@@ -3,21 +3,21 @@
 ## **Overview**
 This project is an **AI-powered educational assistant** that adapts responses based on a user's **thinking style.** It integrates **NLP, FastAPI, and Supabase** to classify users' cognitive preferences and provide personalized tutoring experiences.
 
-## ** Features**
+## **Features**
 - ** Thinking Style Classification** → Fine-tuned NLP model predicts if a user is concrete, logical, theoretical, practical, or intuitive.
 - ** Personalized Course Recommendations** → Matches users with relevant subjects based on their preferences.
 - ** AI-Powered Chatbot** → Uses **Mistral-7B** for intelligent responses and **stores conversation history.**
 - ** Document-Based Q&A** → Extracts text from **PDFs, DOCX, and TXT** files to answer user queries.
 - **🛠 FastAPI + Supabase Backend** → Ensures scalability and efficient data storage.
 
-## **🛠 Tech Stack**
+## **Tech Stack**
 - **Backend:** FastAPI, Supabase, Python
 - **NLP Models:** Fine-tuned **Microsoft Phi** (via Hugging Face) for thinking style classification, Mistral-7B (via OpenRouter)
 - **Database:** Supabase (PostgreSQL)
 - **Authentication:** Secure user login and registration
 - **File Processing:** PDF, DOCX, and TXT extraction for AI-based question answering
 
-## ** NLP Techniques**
+## **NLP Techniques**
 ### **1️ Thinking Style Classification**
 - Uses a **fine-tuned Microsoft Phi model** (via Hugging Face) to classify users based on their cognitive preferences.
 - Categories:
@@ -38,7 +38,7 @@ This project is an **AI-powered educational assistant** that adapts responses ba
 - Uses **LLM-based Q&A** to answer user queries based on document content.
 - Planned improvement: **Enhance document summarization** with NLP models.
 
-## ** API Endpoints**
+## **API Endpoints**
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/auth/register` | User registration |
@@ -55,12 +55,12 @@ the below one is tailored to concrete thinking styles which relates with real ti
 ![Survey UI](pca.png)
 the below one is without tailoring to thinking styles
 ![Survey UI](withoutts.png)
-## ** Future Improvements**
+## **Future Improvements**
 - ** Replace OpenRouter API classification** with our own **fine-tuned model**
 - ** Improve Thinking Style Model Accuracy** using better labeled data
 - ** Deploy an Interactive Demo** to showcase real-time AI tutoring
 
-## ** Setup Instructions**
+## **Setup Instructions**
 1. Clone the repository:
    ```bash
    git clone https://github.com/your-repo-link.git
